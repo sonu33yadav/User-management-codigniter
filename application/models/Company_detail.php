@@ -18,4 +18,18 @@ class Company_detail extends CI_Model
         return $this->db->update('user_employment', $company_details);
     }
 
+    public function getCompanyDetails($user_id)
+    {
+        if (empty($user_id) || !is_numeric($user_id)) {
+            return [];
+        }
+
+        $this->db->select('company, designation, start_date, end_date');
+        $this->db->from('user_employment');
+        $this->db->where('user_id', $user_id);
+        $query = $this->db->get();
+
+        return $query->result_array();
+    }
+
 }

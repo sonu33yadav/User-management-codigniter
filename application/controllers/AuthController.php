@@ -57,7 +57,7 @@ class AuthController extends CI_Controller
                 $this->db->where('id', $user['id'])
                     ->update('users', ['last_login' => date('Y-m-d H:i:s')]);
                 $this->session->set_flashdata('message', 'Welcome to your account, ' . $user['first_name']);
-                echo "Hi Customer";
+                redirect('AuthController/customerDashboard');
             }
 
         } else {
@@ -83,4 +83,43 @@ class AuthController extends CI_Controller
 
         $this->load->view('adminDashbord', $data);
     }
+    public function customerDashboard()
+    {
+        try {
+            // Get the logged-in user's ID from the session
+            $user_id = $this->session->userdata('user_id');
+            if (!$user_id) {
+                // If not logged in, redirect to the login page or show an error
+                $this->session->set_flashdata('error', 'You need to log in to access the dashboard.');
+                redirect('login');
+            }
+
+            // Fetch user details
+            $this->load->model('Users');
+            $user = $this->Users->get_user_by_id($user_id);
+
+            if (!$user) {
+                throw new Exception('User details not found.');
+            }
+
+            // Fetch related data (education and employment details)
+            $this->load->model('Education_detail');
+            $this->load->model('Company_detail');
+            $education_details  = $this->Education_detail->getEducationDetails($user_id);
+            $employment_details = $this->Company_detail->getCompanyDetails($user_id);
+
+            // Prepare data for the view
+            $data['user']               = $user;
+            $data['education_details']  = $education_details;
+            $data['employment_details'] = $employment_details;
+
+            // Load the customer dashboard view
+            $this->load->view('customerDashbord', $data);
+        } catch (Exception $e) {
+            // Handle exceptions and redirect to the login or error page
+            $this->session->set_flashdata('error', $e->getMessage());
+            redirect('login');
+        }
+    }
+
 }

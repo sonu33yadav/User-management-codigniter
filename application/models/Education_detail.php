@@ -18,4 +18,18 @@ class Education_detail extends CI_Model
         return $this->db->update('user_education', $education_details);
     }
 
+    public function getEducationDetails($user_id)
+    {
+        if (empty($user_id) || !is_numeric($user_id)) {
+            return [];
+        }
+
+        $this->db->select('degree, institution, year_of_completion');
+        $this->db->from('user_education');
+        $this->db->where('user_id', $user_id);
+        $query = $this->db->get();
+
+        return $query->result_array();
+    }
+
 }
