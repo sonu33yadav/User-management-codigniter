@@ -16,6 +16,8 @@ class userController extends CI_Controller
         $this->load->model('Company_detail');
         $this->load->model('Users');
         $this->load->library('form_validation');
+        $this->load->library('mail_library');
+        $this->load->helpers('Dashbord_helper');
 
     }
     public function addUser()
@@ -95,6 +97,15 @@ class userController extends CI_Controller
             $this->Education_detail->insert_EducationDetails($education_details);
             $this->Company_detail->insert_Companydetails($company_Details);
 
+            $to          = $this->input->post('email');
+            $subject     = 'Test Email';
+            $body        = '<h1>Hello!</h1><p>This is a test email sent using MailLibrary.</p>';
+            $attachments = [];
+
+// Send email
+            // $result = $this->mail_library->sendEmail($to, $subject, $body, true, $attachments);
+            $result = $this->mail_library->sendEmail($to, $subject, $body, true, $attachments);
+
             if ($this->db->trans_status() === false) {
                 $this->db->trans_rollback();
                 throw new Exception('Transaction failed. All operations have been rolled back.');
@@ -117,12 +128,8 @@ class userController extends CI_Controller
             $this->session->set_flashdata('error', 'You need to log in to access the dashboard.');
             redirect('login');
         }
-        $logged_in_user          = $this->Users->get_user_with_last_login($user_id);
-        $user_count              = $this->Users->getUserscount();
-        $last_five_users         = $this->Users->getUsers();
-        $data['last_five_users'] = $last_five_users;
-        $data['user_count']      = $user_count;
-        $data['last_login']      = $logged_in_user['last_login'];
+
+        $data = getDashborddata($user_id);
         $this->load->view('adminDashbord', $data);
     }
 
@@ -178,13 +185,14 @@ class userController extends CI_Controller
         }
 
         // Load data for the admin dashboard
-        $logged_in_user          = $this->Users->get_user_with_last_login($user_id);
-        $user_count              = $this->Users->getUserscount();
-        $last_five_users         = $this->Users->getUsers();
-        $data['last_five_users'] = $last_five_users;
-        $data['user_count']      = $user_count;
-        $data['last_login']      = isset($logged_in_user['last_login']) ? $logged_in_user['last_login'] : 'No login details available.';
+        // $logged_in_user          = $this->Users->get_user_with_last_login($user_id);
+        // $user_count              = $this->Users->getUserscount();
+        // $last_five_users         = $this->Users->getUsers();
+        // $data['last_five_users'] = $last_five_users;
+        // $data['user_count']      = $user_count;
+        // $data['last_login']      = isset($logged_in_user['last_login']) ? $logged_in_user['last_login'] : 'No login details available.';
 
+        $data = getDashborddata($user_id);
         // Load the admin dashboard view
         $this->load->view('adminDashbord', $data);
     }
@@ -242,12 +250,8 @@ class userController extends CI_Controller
                     $this->session->set_flashdata('error', 'You need to log in to access the dashboard.');
                     redirect('login');
                 }
-                $logged_in_user          = $this->Users->get_user_with_last_login($user_id);
-                $user_count              = $this->Users->getUserscount();
-                $last_five_users         = $this->Users->getUsers();
-                $data['last_five_users'] = $last_five_users;
-                $data['user_count']      = $user_count;
-                $data['last_login']      = $logged_in_user['last_login'];
+
+                $data = getDashborddata($user_id);
                 $this->load->view('adminDashbord', $data);
             }
 
@@ -265,12 +269,8 @@ class userController extends CI_Controller
                 $this->session->set_flashdata('error', 'You need to log in to access the dashboard.');
                 redirect('login');
             }
-            $logged_in_user          = $this->Users->get_user_with_last_login($user_id);
-            $user_count              = $this->Users->getUserscount();
-            $last_five_users         = $this->Users->getUsers();
-            $data['last_five_users'] = $last_five_users;
-            $data['user_count']      = $user_count;
-            $data['last_login']      = $logged_in_user['last_login'];
+
+            $data = getDashborddata($user_id);
             $this->load->view('adminDashbord', $data);
         }
     }
@@ -324,14 +324,21 @@ class userController extends CI_Controller
             // Handle file upload (Profile Image)
             $profile_image = '';
             if ($_FILES['profile_image']['name'] != '') {
-                $config['upload_path']   = './uploads/profile_images/';
-                $config['allowed_types'] = 'gif|jpg|png|jpeg';
+                $upload_dir = './uploads/profile_images/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+                $file_info      = pathinfo($_FILES['profile_image']['name']);
+                $file_extension = $file_info['extension']; // e.g., 'jpg', 'png', etc.
+
+                $config['upload_path']   = $upload_dir;
+                $config['allowed_types'] = 'jpg|jpeg|png|gif';
                 $config['max_size']      = 1024 * 2; // 2MB max file size
                 $config['file_name']     = uniqid('profile_', true);
-
                 $this->load->library('upload', $config);
 
                 if (!$this->upload->do_upload('profile_image')) {
+
                     throw new Exception($this->upload->display_errors());
                 } else {
                     $file_data     = $this->upload->data();
@@ -391,14 +398,11 @@ class userController extends CI_Controller
                 $this->session->set_flashdata('error', 'You need to log in to access the dashboard.');
                 redirect('login');
             }
-            $logged_in_user          = $this->Users->get_user_with_last_login($user_id);
-            $user_count              = $this->Users->getUserscount();
-            $last_five_users         = $this->Users->getUsers();
-            $data['last_five_users'] = $last_five_users;
-            $data['user_count']      = $user_count;
-            $data['last_login']      = $logged_in_user['last_login'];
+
+            $data = getDashborddata($user_id);
             $this->load->view('adminDashbord', $data);
         } catch (Exception $e) {
+            print_r($e);die;
             // Handle exceptions
             $this->session->set_flashdata('error', $e->getMessage());
             $this->load->view('editUser', ['user' => $user, 'education' => $education_detail, 'company' => $company_detail]);

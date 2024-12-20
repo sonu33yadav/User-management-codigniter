@@ -8,6 +8,7 @@ class AuthController extends CI_Controller
         parent::__construct();
         $this->load->helper('url');
         $this->load->model('Users');
+        $this->load->helpers('Dashbord_helper');
 
     }
     public function index()
@@ -74,13 +75,7 @@ class AuthController extends CI_Controller
             $this->session->set_flashdata('error', 'You need to log in to access the dashboard.');
             redirect('login');
         }
-        $logged_in_user          = $this->Users->get_user_with_last_login($user_id);
-        $user_count              = $this->Users->getUserscount();
-        $last_five_users         = $this->Users->getUsers();
-        $data['last_five_users'] = $last_five_users;
-        $data['user_count']      = $user_count;
-        $data['last_login']      = $logged_in_user['last_login'];
-
+        $data = getDashborddata($user_id);
         $this->load->view('adminDashbord', $data);
     }
     public function customerDashboard()
